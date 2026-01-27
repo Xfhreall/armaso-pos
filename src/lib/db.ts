@@ -1,12 +1,11 @@
 import { PrismaClient } from '../../generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { Pool } from 'pg'
+import { withAccelerate } from '@prisma/extension-accelerate'
 
-// Create Prisma client with Pg adapter for serverless
+// Create Prisma client with Accelerate extension for Vercel
 const createPrismaClient = () => {
-  const pool = new Pool({ connectionString: process.env.DATABASE_URL })
-  const adapter = new PrismaPg(pool)
-  return new PrismaClient({ adapter })
+  return new PrismaClient({
+    datasourceUrl: process.env.DATABASE_PRISMA_DATABASE_URL,
+  }).$extends(withAccelerate())
 }
 
 // Create a singleton Prisma client
