@@ -191,6 +191,7 @@ function OverviewTab() {
         [
           order.id,
           `"${order.customerName}"`, // Quote to handle commas in names
+          `"${order.items.map((item) => item.menu.name).join(', ')}"`,
           order.total,
           order.paymentMethod,
           order.status,
