@@ -4,6 +4,7 @@ import { TanStackDevtools } from "@tanstack/react-devtools";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "@/components/ui/sonner";
+import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
 
 import appCss from "../styles.css?url";
 
@@ -49,22 +50,23 @@ function RootComponent() {
         <RootDocument>
           <Outlet />
           <Toaster position="top-right" richColors />
+          <PwaInstallPrompt />
         </RootDocument>
         {import.meta.env.DEV && (
           <TanStackDevtools
-        config={{
-          position: "bottom-right",
-        }}
-        plugins={[
-          {
-            name: "Tanstack Router",
-            render: <TanStackRouterDevtoolsPanel />,
-          },
-          {
-            name: "Tanstack Query",
-            render: <TanStackDevtools />,
-          },
-        ]}
+            config={{
+              position: "bottom-right",
+            }}
+            plugins={[
+              {
+                name: "Tanstack Router",
+                render: <TanStackRouterDevtoolsPanel />,
+              },
+              {
+                name: "Tanstack Query",
+                render: <TanStackDevtools />,
+              },
+            ]}
           />
         )}
       </ThemeProvider>
