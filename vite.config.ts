@@ -18,6 +18,11 @@ const config = defineConfig({
     tanstackStart(),
     viteReact(),
   ],
+  resolve: {
+    alias: {
+      '.prisma/client/default': './node_modules/.prisma/client/default.js',
+    },
+  },
 })
 
 export default config
