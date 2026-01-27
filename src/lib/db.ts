@@ -1,23 +1,16 @@
-import { PrismaClient } from '../../generated/prisma/client'
-import { PrismaPg } from '@prisma/adapter-pg'
-import { Pool } from 'pg'
+import { PrismaClient } from '@prisma/client'
+import { withAccelerate } from '@prisma/extension-accelerate'
 
-// Create Prisma client with Pg adapter for serverless
-const createPrismaClient = () => {
-  const pool = new Pool({ connectionString: process.env.DATABASE_POSTGRES_URL })
-  const adapter = new PrismaPg(pool)
-  return new PrismaClient({ adapter })
-}
-
-// Create a singleton Prisma client
 const globalForPrisma = globalThis as unknown as {
   prisma: ReturnType<typeof createPrismaClient> | undefined
 }
 
-export const prisma = globalForPrisma.prisma ?? createPrismaClient()
-
-if (process.env.NODE_ENV !== 'production') {
-  globalForPrisma.prisma = prisma
+function createPrismaClient() {
+  return new PrismaClient({
+    accelerateUrl: process.env.DATABASE_URL,
+  }).$extends(withAccelerate())
 }
 
-export * from '../../generated/prisma/client'
+export const prisma = globalForPrisma.prisma ?? createPrismaClient()
+
+if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
