@@ -111,11 +111,6 @@ function LoginPage() {
                 "Sign in"
               )}
             </Button>
-
-            <p className="text-center text-sm text-muted-foreground">
-              Demo credentials: <code className="bg-muted px-1.5 py-0.5 rounded">admin</code> /{" "}
-              <code className="bg-muted px-1.5 py-0.5 rounded">admin123</code>
-            </p>
           </form>
         </CardContent>
       </Card>
