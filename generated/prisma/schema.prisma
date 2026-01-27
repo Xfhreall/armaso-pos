@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ========== Enums ==========
+
+enum MenuCategory {
+  MAKANAN
+  MINUMAN
+  PAKET
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  SERVED
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+}
+
+// ========== Models ==========
+
+model User {
+  id        String   @id @default(cuid())
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Menu {
+  id        String       @id @default(cuid())
+  name      String
+  price     Int
+  category  MenuCategory
+  createdAt DateTime     @default(now())
+  updatedAt DateTime     @updatedAt
+
+  orderItems OrderItem[]
+}
+
+model Order {
+  id            String        @id @default(cuid())
+  customerName  String
+  total         Int
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  items OrderItem[]
+}
+
+model OrderItem {
+  id       String @id @default(cuid())
+  orderId  String
+  menuId   String
+  quantity Int
+
+  order Order @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  menu  Menu  @relation(fields: [menuId], references: [id])
+
+  @@index([orderId])
+  @@index([menuId])
+}
