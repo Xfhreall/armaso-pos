@@ -58,7 +58,7 @@ function LoginPage() {
             <Store className="w-8 h-8 text-primary-foreground" />
           </div>
           <div>
-            <CardTitle className="text-2xl font-bold">Welcome to Armaso</CardTitle>
+            <CardTitle className="text-2xl font-bold">Welcome to Nyawit</CardTitle>
             <CardDescription className="mt-2">
               Sign in to access the POS & CMS system
             </CardDescription>
