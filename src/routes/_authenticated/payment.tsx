@@ -2,11 +2,13 @@ import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { useCart, formatCurrency } from "@/lib/cart";
 import { createOrder } from "@/lib/orders";
+import { useValidateVoucher, useVoucherMutations } from "@/lib/queries";
 import type { PaymentMethod } from "@/lib/db";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   ArrowLeft,
@@ -16,7 +18,9 @@ import {
   Loader2,
   User,
   ShoppingBag,
-  StickyNote
+  StickyNote,
+  Ticket,
+  X,
 } from "lucide-react";
 import { toast } from "sonner";
 import { useQueryClient } from "@tanstack/react-query";
@@ -30,6 +34,23 @@ function PaymentPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [isProcessing, setIsProcessing] = useState(false);
+
+  // Voucher state
+  const [voucherCode, setVoucherCode] = useState("");
+  const [appliedVoucher, setAppliedVoucher] = useState<{
+    id: string;
+    code: string;
+    discount: number;
+  } | null>(null);
+  const [isValidating, setIsValidating] = useState(false);
+
+  const validateVoucher = useValidateVoucher();
+  const { apply: applyVoucher } = useVoucherMutations();
+
+  // Calculate totals
+  const subtotal = cart.total;
+  const discount = appliedVoucher?.discount || 0;
+  const total = Math.max(0, subtotal - discount);
 
   // Redirect if cart is empty
   if (cart.items.length === 0) {
@@ -54,10 +75,39 @@ function PaymentPage() {
     cart.setPaymentMethod(method);
   };
 
+  const handleApplyVoucher = async () => {
+    if (!voucherCode.trim()) return;
+
+    setIsValidating(true);
+    try {
+      const result = await validateVoucher.mutateAsync({ data: voucherCode.trim() });
+
+      if (result.valid && result.voucher) {
+        setAppliedVoucher(result.voucher);
+        toast.success("Voucher berhasil diterapkan!", {
+          description: `Diskon ${formatCurrency(result.voucher.discount)}`,
+        });
+      } else {
+        toast.error("Voucher tidak valid", {
+          description: result.error || "Kode voucher tidak ditemukan",
+        });
+      }
+    } catch {
+      toast.error("Gagal memvalidasi voucher");
+    } finally {
+      setIsValidating(false);
+    }
+  };
+
+  const handleRemoveVoucher = () => {
+    setAppliedVoucher(null);
+    setVoucherCode("");
+  };
+
   const handleConfirmPayment = async () => {
     setIsProcessing(true);
     try {
-      await createOrder({
+      const order = await createOrder({
         data: {
           customerName: cart.customerName,
           paymentMethod: cart.paymentMethod,
@@ -67,23 +117,39 @@ function PaymentPage() {
             quantity: item.quantity,
             price: item.price,
           })),
+          discount: discount,
+          voucherCode: appliedVoucher?.code || undefined,
         },
       });
 
-      // Invalidate orders cache
+      // Apply voucher log if voucher was used
+      if (appliedVoucher) {
+        await applyVoucher.mutateAsync({
+          data: {
+            voucherCode: appliedVoucher.code,
+            orderId: order.id,
+            discount: discount,
+          },
+        });
+      }
+
+      // Invalidate caches
       queryClient.invalidateQueries({ queryKey: ["orders"] });
       queryClient.invalidateQueries({ queryKey: ["kitchen-orders"] });
       queryClient.invalidateQueries({ queryKey: ["daily-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["weekly-stats"] });
+      queryClient.invalidateQueries({ queryKey: ["vouchers"] });
+      queryClient.invalidateQueries({ queryKey: ["voucher-logs"] });
 
-      toast.success("Payment successful!", {
-        description: `Order for ${cart.customerName} has been placed`,
+      toast.success("Pembayaran berhasil!", {
+        description: `Order untuk ${cart.customerName} telah dibuat`,
       });
 
       cart.clearCart();
       navigate({ to: "/pos" });
-    } catch (error) {
-      toast.error("Payment failed", {
-        description: "Please try again",
+    } catch {
+      toast.error("Pembayaran gagal", {
+        description: "Silakan coba lagi",
       });
     } finally {
       setIsProcessing(false);
@@ -160,10 +226,73 @@ function PaymentPage() {
 
               <Separator />
 
-              {/* Total */}
-              <div className="flex items-center justify-between text-lg font-bold">
-                <span>Total</span>
-                <span className="text-primary">{formatCurrency(cart.total)}</span>
+              {/* Voucher Input */}
+              <div className="space-y-2">
+                <Label className="flex items-center gap-2 text-sm">
+                  <Ticket className="w-4 h-4 text-muted-foreground" />
+                  Kode Voucher
+                </Label>
+                {appliedVoucher ? (
+                  <div className="flex items-center justify-between bg-green-500/10 border border-green-500/30 rounded-lg px-3 py-2">
+                    <div className="flex items-center gap-2">
+                      <CheckCircle2 className="w-4 h-4 text-green-600" />
+                      <span className="font-medium text-green-700 dark:text-green-400">
+                        {appliedVoucher.code}
+                      </span>
+                      <span className="text-sm text-green-600">
+                        (-{formatCurrency(appliedVoucher.discount)})
+                      </span>
+                    </div>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-6 w-6"
+                      onClick={handleRemoveVoucher}
+                    >
+                      <X className="w-4 h-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      placeholder="Masukkan kode voucher..."
+                      value={voucherCode}
+                      onChange={(e) => setVoucherCode(e.target.value.toUpperCase())}
+                      className="uppercase"
+                    />
+                    <Button
+                      variant="secondary"
+                      onClick={handleApplyVoucher}
+                      disabled={isValidating || !voucherCode.trim()}
+                    >
+                      {isValidating ? (
+                        <Loader2 className="w-4 h-4 animate-spin" />
+                      ) : (
+                        "Gunakan"
+                      )}
+                    </Button>
+                  </div>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Totals */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between text-sm">
+                  <span className="text-muted-foreground">Subtotal</span>
+                  <span>{formatCurrency(subtotal)}</span>
+                </div>
+                {discount > 0 && (
+                  <div className="flex items-center justify-between text-sm text-green-600">
+                    <span>Diskon</span>
+                    <span>-{formatCurrency(discount)}</span>
+                  </div>
+                )}
+                <div className="flex items-center justify-between text-lg font-bold">
+                  <span>Total</span>
+                  <span className="text-primary">{formatCurrency(total)}</span>
+                </div>
               </div>
             </CardContent>
           </Card>
@@ -248,7 +377,7 @@ function PaymentPage() {
               ) : (
                 <>
                   <CheckCircle2 className="w-5 h-5 mr-2" />
-                  Confirm Payment
+                  Confirm Payment - {formatCurrency(total)}
                 </>
               )}
             </Button>
@@ -258,3 +387,4 @@ function PaymentPage() {
     </div>
   );
 }
+

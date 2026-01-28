@@ -1,6 +1,9 @@
 import { PrismaClient } from '@prisma/client'
 import { withAccelerate } from '@prisma/extension-accelerate'
 
+// Re-export types for use in other modules
+export type { Menu, MenuCategory, Order, OrderItem, OrderStatus, PaymentMethod, User, Voucher, VoucherLog } from '@prisma/client'
+
 const globalForPrisma = globalThis as unknown as {
   prisma: ReturnType<typeof createPrismaClient> | undefined
 }

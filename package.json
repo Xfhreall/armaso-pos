@@ -14,7 +14,9 @@
   },
   "dependencies": {
     "@base-ui/react": "^1.1.0",
+    "@fontsource-variable/plus-jakarta-sans": "^5.2.8",
     "@fontsource-variable/raleway": "^5.2.8",
+    "@fontsource-variable/sora": "^5.2.8",
     "@libsql/client": "^0.17.0",
     "@prisma/adapter-better-sqlite3": "^7.3.0",
     "@prisma/adapter-libsql": "^7.3.0",
@@ -42,6 +44,7 @@
     "radix-ui": "^1.4.3",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",
+    "recharts": "2.15.4",
     "shadcn": "^3.7.0",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.4.0",

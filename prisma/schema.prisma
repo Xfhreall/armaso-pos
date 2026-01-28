@@ -43,6 +43,7 @@ model Menu {
   name      String
   price     Int
   category  MenuCategory
+  isActive  Boolean      @default(true)
   createdAt DateTime     @default(now())
   updatedAt DateTime     @updatedAt
 
@@ -53,13 +54,17 @@ model Order {
   id            String        @id @default(cuid())
   customerName  String
   total         Int
+  subtotal      Int           @default(0)
+  discount      Int           @default(0)
+  voucherCode   String?
   status        OrderStatus   @default(PENDING)
   paymentMethod PaymentMethod
   notes         String?
   createdAt     DateTime      @default(now())
   updatedAt     DateTime      @updatedAt
 
-  items OrderItem[]
+  items       OrderItem[]
+  voucherLogs VoucherLog[]
 }
 
 model OrderItem {
@@ -73,4 +78,32 @@ model OrderItem {
 
   @@index([orderId])
   @@index([menuId])
+}
+
+model Voucher {
+  id         String    @id @default(cuid())
+  code       String    @unique
+  discount   Int // Amount in Rupiah
+  isActive   Boolean   @default(true)
+  usageCount Int       @default(0)
+  maxUsage   Int? // null = unlimited
+  expiresAt  DateTime?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+
+  usageLogs VoucherLog[]
+}
+
+model VoucherLog {
+  id        String   @id @default(cuid())
+  voucherId String
+  orderId   String
+  discount  Int
+  appliedAt DateTime @default(now())
+
+  voucher Voucher @relation(fields: [voucherId], references: [id])
+  order   Order   @relation(fields: [orderId], references: [id])
+
+  @@index([voucherId])
+  @@index([orderId])
 }

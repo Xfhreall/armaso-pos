@@ -2,10 +2,28 @@ import { createFileRoute } from '@tanstack/react-router'
 import { useState, useMemo } from 'react'
 import {
   useDailyStats,
+  useWeeklyStats,
   useOrders,
   useMenuItems,
   useMenuMutations,
+  useVouchers,
+  useVoucherMutations,
+  useVoucherLogs,
 } from '@/lib/queries'
+import {
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart'
+import {
+  LineChart,
+  Line,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+} from 'recharts'
 import { formatCurrency } from '@/lib/cart'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -54,6 +72,7 @@ import {
 } from '@/components/ui/alert-dialog'
 import { Label } from '@/components/ui/label'
 import { Badge } from '@/components/ui/badge'
+import { Switch } from '@/components/ui/switch'
 import {
   Plus,
   Pencil,
@@ -66,10 +85,12 @@ import {
   ArrowUpDown,
   ChevronLeft,
   ChevronRight,
-  Eye,
+  TrendingUp,
+  Ticket,
+  History,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import type { Menu, MenuCategory } from '@/lib/db'
+import type { Menu, MenuCategory, Voucher, VoucherLog } from '@/lib/db'
 import type { OrderStatus, PaymentMethod } from '@/lib/db'
 
 // Helper type for order items since we may not have direct access to the return type
@@ -110,12 +131,15 @@ function CMSPage() {
       </div>
 
       <Tabs defaultValue="overview" className="space-y-6">
-        <TabsList className="bg-muted/50 p-1 w-full min-h-14 sm:w-auto grid grid-cols-2">
+        <TabsList className="bg-muted/50 p-1 w-full min-h-14 sm:w-auto grid grid-cols-3">
           <TabsTrigger value="overview" className="text-sm">
             Analytics
           </TabsTrigger>
           <TabsTrigger value="products" className="text-sm">
             Products
+          </TabsTrigger>
+          <TabsTrigger value="vouchers" className="text-sm">
+            Vouchers
           </TabsTrigger>
         </TabsList>
         <TabsContent value="overview" className="space-y-6">
@@ -124,6 +148,9 @@ function CMSPage() {
         <TabsContent value="products" className="space-y-6">
           <ProductsTab />
         </TabsContent>
+        <TabsContent value="vouchers" className="space-y-6">
+          <VouchersTab />
+        </TabsContent>
       </Tabs>
     </div>
   )
@@ -131,6 +158,7 @@ function CMSPage() {
 
 function OverviewTab() {
   const { data: stats } = useDailyStats()
+  const { data: weeklyStats } = useWeeklyStats()
   // Fetch more orders for the "Transaction History" table
   const { data: orders } = useOrders({ limit: 50 })
   const [searchTerm, setSearchTerm] = useState('')
@@ -283,6 +311,152 @@ function OverviewTab() {
                 ))
               )}
             </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      {/* Weekly Charts */}
+      <div className="grid gap-4 sm:gap-6 grid-cols-1 lg:grid-cols-2">
+        {/* Revenue Chart */}
+        <Card className="bg-card/50 border-border/50 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Revenue (7 Hari Terakhir)
+            </CardTitle>
+            <div className="text-2xl font-bold">
+              {formatCurrency(weeklyStats?.totalRevenue || 0)}
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                revenue: {
+                  label: 'Revenue',
+                  color: 'var(--chart-1)',
+                },
+              }}
+              className="h-48 w-full [&_.recharts-wrapper]:!m-0"
+            >
+              <LineChart data={weeklyStats?.dailyData || []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  fontSize={12}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                  fontSize={12}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Line
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="var(--color-revenue)"
+                  strokeWidth={2}
+                  dot={false}
+                />
+              </LineChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Orders Chart */}
+        <Card className="bg-card/50 border-border/50 shadow-sm">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Orders (7 Hari Terakhir)
+            </CardTitle>
+            <div className="text-2xl font-bold">
+              {weeklyStats?.totalOrders || 0} orders
+            </div>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                orders: {
+                  label: 'Orders',
+                  color: 'var(--chart-2)',
+                },
+              }}
+              className="h-48 w-full [&_.recharts-wrapper]:!m-0"
+            >
+              <BarChart data={weeklyStats?.dailyData || []}>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} />
+                <XAxis
+                  dataKey="date"
+                  tickLine={false}
+                  axisLine={false}
+                  tickMargin={8}
+                  fontSize={12}
+                />
+                <YAxis
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  fontSize={12}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="orders"
+                  fill="var(--color-orders)"
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        {/* Top Selling Items */}
+        <Card className="bg-card/50 border-border/50 shadow-sm lg:col-span-2">
+          <CardHeader className="pb-2">
+            <CardTitle className="text-sm font-medium text-muted-foreground">
+              Top Selling Items (7 Hari Terakhir)
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                quantity: {
+                  label: 'Terjual',
+                  color: 'var(--chart-3)',
+                },
+              }}
+              className="h-48 w-full [&_.recharts-wrapper]:!m-0"
+            >
+              <BarChart
+                data={weeklyStats?.topItems || []}
+                layout="vertical"
+                margin={{ left: 80 }}
+              >
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis
+                  type="number"
+                  tickLine={false}
+                  axisLine={false}
+                  allowDecimals={false}
+                  fontSize={12}
+                />
+                <YAxis
+                  dataKey="name"
+                  type="category"
+                  tickLine={false}
+                  axisLine={false}
+                  width={80}
+                  fontSize={12}
+                />
+                <ChartTooltip content={<ChartTooltipContent />} />
+                <Bar
+                  dataKey="quantity"
+                  fill="var(--color-quantity)"
+                  radius={[0, 4, 4, 0]}
+                />
+              </BarChart>
+            </ChartContainer>
           </CardContent>
         </Card>
       </div>
@@ -592,11 +766,12 @@ function ProductsTab() {
                   </div>
 
                   <div className="rounded-md border border-border/50 overflow-x-auto">
-                    <Table className="min-w-[400px]">
+                    <Table className="min-w-[500px]">
                       <TableHeader className="bg-muted/30">
                         <TableRow>
                           <TableHead>Name</TableHead>
                           <TableHead>Price</TableHead>
+                          <TableHead className="text-center">Active</TableHead>
                           <TableHead className="text-right">Actions</TableHead>
                         </TableRow>
                       </TableHeader>
@@ -607,10 +782,15 @@ function ProductsTab() {
                             className="hover:bg-muted/30"
                           >
                             <TableCell className="font-medium">
-                              {product.name}
+                              <span className={!product.isActive ? 'text-muted-foreground line-through' : ''}>
+                                {product.name}
+                              </span>
                             </TableCell>
                             <TableCell>
                               {formatCurrency(product.price)}
+                            </TableCell>
+                            <TableCell className="text-center">
+                              <ToggleActiveSwitch product={product} />
                             </TableCell>
                             <TableCell className="text-right space-x-2">
                               <ProductDialog mode="edit" product={product} />
@@ -797,6 +977,378 @@ function DeleteProductDialog({ product }: { product: Menu }) {
             This action cannot be undone. This will permanently delete
             <span className="font-bold"> {product.name} </span>
             from your menu.
+          </AlertDialogDescription>
+        </AlertDialogHeader>
+        <AlertDialogFooter>
+          <AlertDialogCancel>Cancel</AlertDialogCancel>
+          <AlertDialogAction
+            onClick={handleDelete}
+            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+          >
+            Delete
+          </AlertDialogAction>
+        </AlertDialogFooter>
+      </AlertDialogContent>
+    </AlertDialog>
+  )
+}
+
+
+function ToggleActiveSwitch({ product }: { product: Menu }) {
+  const { toggleActive } = useMenuMutations()
+
+  const handleToggle = async (checked: boolean) => {
+    try {
+      await toggleActive.mutateAsync({ data: { id: product.id, isActive: checked } })
+      toast.success(checked ? 'Menu diaktifkan' : 'Menu dinonaktifkan')
+    } catch {
+      toast.error('Gagal mengubah status menu')
+    }
+  }
+
+  return (
+    <Switch
+      checked={product.isActive}
+      onCheckedChange={handleToggle}
+      disabled={toggleActive.isPending}
+    />
+  )
+}
+
+function VouchersTab() {
+  const { data: vouchers, isLoading } = useVouchers()
+  const { data: voucherLogs } = useVoucherLogs()
+  const [isCreateOpen, setIsCreateOpen] = useState(false)
+
+  return (
+    <div className="space-y-6">
+      <Card className="border-border/50 shadow-sm">
+        <CardHeader className="flex flex-row items-center justify-between pb-4">
+          <div className="space-y-1">
+            <CardTitle>Vouchers</CardTitle>
+            <CardDescription>
+              Manage promo codes and discounts
+            </CardDescription>
+          </div>
+          <Button onClick={() => setIsCreateOpen(true)} className="gap-2">
+            <Plus className="w-4 h-4" />
+            Create Voucher
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {isLoading ? (
+            <div className="text-center py-8">Loading vouchers...</div>
+          ) : !vouchers?.length ? (
+            <div className="text-center py-12 text-muted-foreground">
+              <Ticket className="w-12 h-12 mx-auto mb-4 opacity-20" />
+              <p>No vouchers created yet.</p>
+            </div>
+          ) : (
+            <div className="rounded-md border border-border/50 overflow-x-auto">
+              <Table>
+                <TableHeader className="bg-muted/30">
+                  <TableRow>
+                    <TableHead>Code</TableHead>
+                    <TableHead>Discount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Usage</TableHead>
+                    <TableHead>Expires</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {vouchers.map((voucher) => (
+                    <TableRow key={voucher.id} className="hover:bg-muted/30">
+                      <TableCell className="font-mono font-bold">
+                        {voucher.code}
+                      </TableCell>
+                      <TableCell>{formatCurrency(voucher.discount)}</TableCell>
+                      <TableCell>
+                        <Badge
+                          variant={voucher.isActive ? 'default' : 'secondary'}
+                        >
+                          {voucher.isActive ? 'Active' : 'Inactive'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {voucher.usageCount}
+                        {voucher.maxUsage ? ` / ${voucher.maxUsage}` : ''}
+                      </TableCell>
+                      <TableCell>
+                        {voucher.expiresAt
+                          ? new Date(voucher.expiresAt).toLocaleDateString()
+                          : 'No expiry'}
+                      </TableCell>
+                      <TableCell className="text-right space-x-2">
+                        <VoucherDialog mode="edit" voucher={voucher} />
+                        <DeleteVoucherDialog voucher={voucher} />
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card className="border-border/50 shadow-sm">
+        <CardHeader>
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <History className="w-5 h-5 text-muted-foreground" />
+              <CardTitle>Usage History</CardTitle>
+            </div>
+            <CardDescription>
+              Recent voucher usage logs
+            </CardDescription>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md border border-border/50 overflow-x-auto">
+            <Table>
+              <TableHeader className="bg-muted/30">
+                <TableRow>
+                  <TableHead>Time</TableHead>
+                  <TableHead>Code</TableHead>
+                  <TableHead>Customer</TableHead>
+                  <TableHead>Discount</TableHead>
+                  <TableHead>Order Amount</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {voucherLogs?.map((log) => (
+                  <TableRow key={log.id} className="hover:bg-muted/30">
+                    <TableCell>
+                      {new Date(log.appliedAt).toLocaleString()}
+                    </TableCell>
+                    <TableCell className="font-mono">{log.voucher.code}</TableCell>
+                    <TableCell>{log.order.customerName}</TableCell>
+                    <TableCell className="text-green-600">
+                      -{formatCurrency(log.discount)}
+                    </TableCell>
+                    <TableCell>{formatCurrency(log.order.total)}</TableCell>
+                  </TableRow>
+                ))}
+                {!voucherLogs?.length && (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                      No usage logs found
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
+        </CardContent>
+      </Card>
+
+      <VoucherDialog
+        open={isCreateOpen}
+        onOpenChange={setIsCreateOpen}
+        mode="create"
+      />
+    </div>
+  )
+}
+
+function VoucherDialog({
+  open,
+  onOpenChange,
+  mode,
+  voucher,
+}: {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  mode: 'create' | 'edit'
+  voucher?: Voucher
+}) {
+  const { create, update } = useVoucherMutations()
+  const [formData, setFormData] = useState({
+    code: '',
+    discount: '',
+    maxUsage: '',
+    expiresAt: '',
+    isActive: true,
+  })
+
+  // Initialize form data when editing or opening
+  if (open === undefined && mode === 'edit' && voucher) {
+    // This is a button trigger for edit mode
+    // We handle state inside the component usually, but here we'll use a local isOpen
+  }
+
+  const [isOpen, setIsOpen] = useState(false)
+  const actualOpen = open !== undefined ? open : isOpen
+  const setActualOpen = onOpenChange || setIsOpen
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    try {
+      if (mode === 'create') {
+        await create.mutateAsync({
+          data: {
+            code: formData.code,
+            discount: Number(formData.discount),
+            maxUsage: formData.maxUsage ? Number(formData.maxUsage) : null,
+            expiresAt: formData.expiresAt || null,
+          }
+        })
+        toast.success('Voucher created')
+      } else if (voucher) {
+        await update.mutateAsync({
+          data: {
+            id: voucher.id,
+            code: formData.code,
+            discount: Number(formData.discount),
+            isActive: formData.isActive,
+            maxUsage: formData.maxUsage ? Number(formData.maxUsage) : null,
+            expiresAt: formData.expiresAt || null,
+          }
+        })
+        toast.success('Voucher updated')
+      }
+      setActualOpen(false)
+      if (mode === 'create') {
+        setFormData({ code: '', discount: '', maxUsage: '', expiresAt: '', isActive: true })
+      }
+    } catch (error) {
+      console.error('Failed to save voucher:', error)
+      toast.error('Failed to save voucher')
+    }
+  }
+
+  // Effect to load data when operating on a voucher
+  useMemo(() => {
+    if (voucher && actualOpen) {
+      setFormData({
+        code: voucher.code,
+        discount: voucher.discount.toString(),
+        maxUsage: voucher.maxUsage?.toString() || '',
+        expiresAt: voucher.expiresAt ? new Date(voucher.expiresAt).toISOString().split('T')[0] : '',
+        isActive: voucher.isActive,
+      })
+    }
+  }, [voucher, actualOpen])
+
+  return (
+    <Dialog open={actualOpen} onOpenChange={setActualOpen}>
+      {mode === 'edit' && (
+        <DialogTrigger asChild>
+          <Button variant="ghost" size="icon">
+            <Pencil className="w-4 h-4 text-muted-foreground" />
+          </Button>
+        </DialogTrigger>
+      )}
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>
+            {mode === 'create' ? 'Create Voucher' : 'Edit Voucher'}
+          </DialogTitle>
+          <DialogDescription>
+            {mode === 'create'
+              ? 'Add a new promo code'
+              : 'Modify existing voucher'}
+          </DialogDescription>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="code">Code</Label>
+            <Input
+              id="code"
+              placeholder="e.g. SUMMER50"
+              value={formData.code}
+              onChange={(e) => setFormData({ ...formData, code: e.target.value.toUpperCase() })}
+              required
+            />
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="discount">Discount Amount (Rp)</Label>
+            <Input
+              id="discount"
+              type="number"
+              placeholder="5000"
+              value={formData.discount}
+              onChange={(e) => setFormData({ ...formData, discount: e.target.value })}
+              required
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-2">
+              <Label htmlFor="maxUsage">Max Usage (Optional)</Label>
+              <Input
+                id="maxUsage"
+                type="number"
+                placeholder="Unlimited"
+                value={formData.maxUsage}
+                onChange={(e) => setFormData({ ...formData, maxUsage: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="expiresAt">Expires At (Optional)</Label>
+              <Input
+                id="expiresAt"
+                type="date"
+                value={formData.expiresAt}
+                onChange={(e) => setFormData({ ...formData, expiresAt: e.target.value })}
+              />
+            </div>
+          </div>
+
+          {mode === 'edit' && (
+            <div className="flex items-center justify-between border p-3 rounded-md">
+              <Label htmlFor="active">Active Status</Label>
+              <Switch
+                id="active"
+                checked={formData.isActive}
+                onCheckedChange={(checked) => setFormData({ ...formData, isActive: checked })}
+              />
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setActualOpen(false)}
+            >
+              Cancel
+            </Button>
+            <Button type="submit" disabled={create.isPending || update.isPending}>
+              {create.isPending || update.isPending ? 'Saving...' : 'Save'}
+            </Button>
+          </DialogFooter>
+        </form>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+function DeleteVoucherDialog({ voucher }: { voucher: Voucher }) {
+  const { remove } = useVoucherMutations()
+
+  const handleDelete = async () => {
+    try {
+      await remove.mutateAsync({ data: voucher.id })
+      toast.success('Voucher deleted')
+    } catch {
+      toast.error('Failed to delete voucher')
+    }
+  }
+
+  return (
+    <AlertDialog>
+      <AlertDialogTrigger asChild>
+        <Button variant="ghost" size="icon" className="hover:bg-destructive/10">
+          <Trash2 className="w-4 h-4 text-destructive" />
+        </Button>
+      </AlertDialogTrigger>
+      <AlertDialogContent>
+        <AlertDialogHeader>
+          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+          <AlertDialogDescription>
+            This will permanently delete the voucher
+            <span className="font-bold"> {voucher.code} </span>.
           </AlertDialogDescription>
         </AlertDialogHeader>
         <AlertDialogFooter>

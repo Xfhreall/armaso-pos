@@ -1,14 +1,20 @@
-import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo } from "react";
-import { useMenuItems } from "@/lib/queries";
-import { useCart, formatCurrency } from "@/lib/cart";
-import type { MenuCategory, Menu } from "@/lib/db";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerTrigger } from "@/components/ui/drawer";
-import { Skeleton } from "@/components/ui/skeleton";
+import { createFileRoute, useNavigate } from '@tanstack/react-router'
+import { useMemo } from 'react'
+import { useActiveMenuItems } from '@/lib/queries'
+import { useCart, formatCurrency } from '@/lib/cart'
+import type { MenuCategory, Menu } from '@/lib/db'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Card, CardContent } from '@/components/ui/card'
+import { Badge } from '@/components/ui/badge'
+import {
+  Drawer,
+  DrawerContent,
+  DrawerHeader,
+  DrawerTitle,
+  DrawerTrigger,
+} from '@/components/ui/drawer'
+import { Skeleton } from '@/components/ui/skeleton'
 import {
   ShoppingCart,
   Plus,
@@ -18,54 +24,69 @@ import {
   ArrowRight,
   UtensilsCrossed,
   Coffee,
-  Package
-} from "lucide-react";
+  Package,
+} from 'lucide-react'
 
-export const Route = createFileRoute("/_authenticated/pos")({
+export const Route = createFileRoute('/_authenticated/pos')({
   component: POSPage,
-});
+})
 
-const categoryConfig: Record<MenuCategory, { label: string; icon: React.ReactNode; color: string }> = {
-  MAKANAN: { label: "Makanan", icon: <UtensilsCrossed className="w-5 h-5" />, color: "from-orange-500 to-red-500" },
-  MINUMAN: { label: "Minuman", icon: <Coffee className="w-5 h-5" />, color: "from-blue-500 to-cyan-500" },
-  PAKET: { label: "Paket", icon: <Package className="w-5 h-5" />, color: "from-purple-500 to-pink-500" },
-};
+const categoryConfig: Record<
+  MenuCategory,
+  { label: string; icon: React.ReactNode; color: string }
+> = {
+  MAKANAN: {
+    label: 'Makanan',
+    icon: <UtensilsCrossed className="w-5 h-5" />,
+    color: 'from-orange-500 to-red-500',
+  },
+  MINUMAN: {
+    label: 'Minuman',
+    icon: <Coffee className="w-5 h-5" />,
+    color: 'from-blue-500 to-cyan-500',
+  },
+  PAKET: {
+    label: 'Paket',
+    icon: <Package className="w-5 h-5" />,
+    color: 'from-purple-500 to-pink-500',
+  },
+}
 
-const categoryOrder: MenuCategory[] = ["MAKANAN", "MINUMAN", "PAKET"];
+const categoryOrder: MenuCategory[] = ['MAKANAN', 'MINUMAN', 'PAKET']
 
 function POSPage() {
-  const { data: menuItems, isLoading } = useMenuItems();
-  const cart = useCart();
-  const navigate = useNavigate();
+  const { data: menuItems, isLoading } = useActiveMenuItems()
+  const cart = useCart()
+  const navigate = useNavigate()
 
   // Group items by category
   const groupedItems = useMemo(() => {
-    if (!menuItems) return {};
+    if (!menuItems) return {}
     const grouped: Record<MenuCategory, Menu[]> = {
       MAKANAN: [],
       MINUMAN: [],
       PAKET: [],
-    };
+    }
     menuItems.forEach((item) => {
       if (grouped[item.category as MenuCategory]) {
-        grouped[item.category as MenuCategory].push(item);
+        grouped[item.category as MenuCategory].push(item)
       }
-    });
-    return grouped;
-  }, [menuItems]);
+    })
+    return grouped
+  }, [menuItems])
 
   const handleCheckout = () => {
-    if (cart.items.length === 0 || !cart.customerName.trim()) return;
-    navigate({ to: "/payment" });
-  };
+    if (cart.items.length === 0 || !cart.customerName.trim()) return
+    navigate({ to: '/payment' })
+  }
 
   // Scroll to category
   const scrollToCategory = (category: MenuCategory) => {
-    const element = document.getElementById(`category-${category}`);
+    const element = document.getElementById(`category-${category}`)
     if (element) {
-      element.scrollIntoView({ behavior: "smooth", block: "start" });
+      element.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }
-  };
+  }
 
   return (
     <div className="flex flex-col lg:flex-row h-[calc(100vh-4rem)] lg:h-screen">
@@ -83,7 +104,9 @@ function POSPage() {
                 className="flex items-center gap-1.5 sm:gap-2 shrink-0 text-xs sm:text-sm"
               >
                 {categoryConfig[category].icon}
-                <span className="hidden sm:inline">{categoryConfig[category].label}</span>
+                <span className="hidden sm:inline">
+                  {categoryConfig[category].label}
+                </span>
                 <Badge variant="secondary" className="ml-0.5 sm:ml-1 text-xs">
                   {groupedItems[category]?.length || 0}
                 </Badge>
@@ -98,30 +121,44 @@ function POSPage() {
             <MenuSkeleton />
           ) : (
             categoryOrder.map((category) => {
-              const items = groupedItems[category] || [];
-              if (items.length === 0) return null;
+              const items = groupedItems[category] || []
+              if (items.length === 0) return null
 
               return (
-                <section key={category} id={`category-${category}`} className="scroll-mt-4">
+                <section
+                  key={category}
+                  id={`category-${category}`}
+                  className="scroll-mt-4"
+                >
                   {/* Category Header */}
                   <div className="flex items-center gap-2 sm:gap-3 mb-3 sm:mb-4">
-                    <div className={`p-1.5 sm:p-2 rounded-lg bg-gradient-to-br ${categoryConfig[category].color} text-white`}>
+                    <div
+                      className={`p-1.5 sm:p-2 rounded-lg bg-gradient-to-br ${categoryConfig[category].color} text-white`}
+                    >
                       {categoryConfig[category].icon}
                     </div>
                     <div>
-                      <h2 className="text-base sm:text-lg font-bold">{categoryConfig[category].label}</h2>
-                      <p className="text-xs sm:text-sm text-muted-foreground">{items.length} item</p>
+                      <h2 className="text-base sm:text-lg font-bold">
+                        {categoryConfig[category].label}
+                      </h2>
+                      <p className="text-xs sm:text-sm text-muted-foreground">
+                        {items.length} item
+                      </p>
                     </div>
                   </div>
 
                   {/* Items Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-2 xl:grid-cols-3 2xl:grid-cols-4 gap-2 sm:gap-3 lg:gap-4">
                     {items.map((item) => (
-                      <MenuCard key={item.id} item={item} onAdd={() => cart.addItem(item)} />
+                      <MenuCard
+                        key={item.id}
+                        item={item}
+                        onAdd={() => cart.addItem(item)}
+                      />
                     ))}
                   </div>
                 </section>
-              );
+              )
             })
           )}
         </div>
@@ -136,7 +173,10 @@ function POSPage() {
       <div className="lg:hidden fixed bottom-4 right-4 z-40">
         <Drawer>
           <DrawerTrigger asChild>
-            <Button size="lg" className="rounded-full shadow-lg h-14 w-14 relative">
+            <Button
+              size="lg"
+              className="rounded-full shadow-lg h-14 w-14 relative"
+            >
               <ShoppingCart className="w-6 h-6" />
               {cart.itemCount > 0 && (
                 <span className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground text-xs w-5 h-5 rounded-full flex items-center justify-center">
@@ -148,7 +188,8 @@ function POSPage() {
           <DrawerContent className="max-h-[85vh]">
             <DrawerHeader>
               <DrawerTitle className="flex items-center gap-2">
-                <ShoppingCart className="w-5 h-5" /> Cart
+                <ShoppingCart className="w-5 h-5" /> Cart ({cart.itemCount}{' '}
+                items)
               </DrawerTitle>
             </DrawerHeader>
             <div className="flex-1 overflow-auto">
@@ -158,12 +199,12 @@ function POSPage() {
         </Drawer>
       </div>
     </div>
-  );
+  )
 }
 
 function MenuCard({ item, onAdd }: { item: Menu; onAdd: () => void }) {
-  const cart = useCart();
-  const quantity = cart.items.find((i) => i.menuId === item.id)?.quantity || 0;
+  const cart = useCart()
+  const quantity = cart.items.find((i) => i.menuId === item.id)?.quantity || 0
 
   return (
     <Card
@@ -178,7 +219,9 @@ function MenuCard({ item, onAdd }: { item: Menu; onAdd: () => void }) {
       <CardContent className="p-2.5 sm:p-4">
         <div className="flex items-start justify-between gap-1 sm:gap-2">
           <div className="flex-1 min-w-0">
-            <h3 className="font-medium text-xs sm:text-sm leading-tight line-clamp-2">{item.name}</h3>
+            <h3 className="font-medium text-xs sm:text-sm leading-tight line-clamp-2">
+              {item.name}
+            </h3>
           </div>
           <Button
             size="icon"
@@ -188,24 +231,19 @@ function MenuCard({ item, onAdd }: { item: Menu; onAdd: () => void }) {
             <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
           </Button>
         </div>
-        <p className="mt-2 sm:mt-3 font-bold text-primary text-xs sm:text-base">{formatCurrency(item.price)}</p>
+        <p className="mt-2 sm:mt-3 font-bold text-primary text-xs sm:text-base">
+          {formatCurrency(item.price)}
+        </p>
       </CardContent>
     </Card>
-  );
+  )
 }
 
 function CartContent({ onCheckout }: { onCheckout: () => void }) {
-  const cart = useCart();
+  const cart = useCart()
 
   return (
     <div className="flex flex-col h-full">
-      <div className="p-4 border-b border-border">
-        <h2 className="font-semibold text-lg flex items-center gap-2">
-          <ShoppingCart className="w-5 h-5" />
-          Cart ({cart.itemCount} items)
-        </h2>
-      </div>
-
       {/* Customer Name */}
       <div className="p-4 border-b border-border">
         <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
@@ -229,26 +267,37 @@ function CartContent({ onCheckout }: { onCheckout: () => void }) {
           </div>
         ) : (
           cart.items.map((item) => (
-            <div key={item.menuId} className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
+            <div
+              key={item.menuId}
+              className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg"
+            >
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-sm truncate">{item.name}</p>
-                <p className="text-sm text-muted-foreground">{formatCurrency(item.price)}</p>
+                <p className="text-sm text-muted-foreground">
+                  {formatCurrency(item.price)}
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <Button
                   size="icon"
                   variant="outline"
                   className="h-8 w-8"
-                  onClick={() => cart.updateQuantity(item.menuId, item.quantity - 1)}
+                  onClick={() =>
+                    cart.updateQuantity(item.menuId, item.quantity - 1)
+                  }
                 >
                   <Minus className="w-3 h-3" />
                 </Button>
-                <span className="w-6 text-center text-sm font-medium">{item.quantity}</span>
+                <span className="w-6 text-center text-sm font-medium">
+                  {item.quantity}
+                </span>
                 <Button
                   size="icon"
                   variant="outline"
                   className="h-8 w-8"
-                  onClick={() => cart.updateQuantity(item.menuId, item.quantity + 1)}
+                  onClick={() =>
+                    cart.updateQuantity(item.menuId, item.quantity + 1)
+                  }
                 >
                   <Plus className="w-3 h-3" />
                 </Button>
@@ -283,7 +332,7 @@ function CartContent({ onCheckout }: { onCheckout: () => void }) {
         </Button>
       </div>
     </div>
-  );
+  )
 }
 
 function MenuSkeleton() {
@@ -312,5 +361,5 @@ function MenuSkeleton() {
         </div>
       ))}
     </div>
-  );
+  )
 }

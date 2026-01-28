@@ -64,3 +64,23 @@ export const deleteMenu = createServerFn({ method: "POST" })
     });
     return { success: true };
   });
+
+// Toggle menu active status
+export const toggleMenuActive = createServerFn({ method: "POST" })
+  .inputValidator((data: { id: string; isActive: boolean }) => data)
+  .handler(async ({ data }) => {
+    const item = await prisma.menu.update({
+      where: { id: data.id },
+      data: { isActive: data.isActive },
+    });
+    return item;
+  });
+
+// Get only active menu items (for POS)
+export const getActiveMenuItems = createServerFn().handler(async () => {
+  const items = await prisma.menu.findMany({
+    where: { isActive: true },
+    orderBy: { name: "asc" },
+  });
+  return items;
+});

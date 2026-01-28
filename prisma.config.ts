@@ -10,6 +10,6 @@ export default defineConfig({
   },
   datasource: {
     // Use direct database URL for migrations
-    url: process.env['DATABASE_POSTGRES_URL'],
+    url: process.env['DATABASE_URL'],
   },
 })
