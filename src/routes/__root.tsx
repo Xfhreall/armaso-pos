@@ -1,12 +1,17 @@
-import { HeadContent, Outlet, Scripts, createRootRoute } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
-import { TanStackDevtools } from "@tanstack/react-devtools";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ThemeProvider } from "@/components/theme-provider";
-import { Toaster } from "@/components/ui/sonner";
-import { PwaInstallPrompt } from "@/components/PwaInstallPrompt";
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRoute,
+} from '@tanstack/react-router'
+import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
+import { TanStackDevtools } from '@tanstack/react-devtools'
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { ThemeProvider } from '@/components/theme-provider'
+import { Toaster } from '@/components/ui/sonner'
+import { PwaInstallPrompt } from '@/components/PwaInstallPrompt'
 
-import appCss from "../styles.css?url";
+import appCss from '../styles.css?url'
 
 // Create a client
 const queryClient = new QueryClient({
@@ -16,32 +21,32 @@ const queryClient = new QueryClient({
       refetchOnWindowFocus: false,
     },
   },
-});
+})
 
 export const Route = createRootRoute({
   head: () => ({
     meta: [
       {
-        charSet: "utf-8",
+        charSet: 'utf-8',
       },
       {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1",
+        name: 'viewport',
+        content: 'width=device-width, initial-scale=1',
       },
       {
-        title: "Armaso POS",
+        title: 'Nyawit POS',
       },
     ],
     links: [
       {
-        rel: "stylesheet",
+        rel: 'stylesheet',
         href: appCss,
       },
     ],
   }),
 
   component: RootComponent,
-});
+})
 
 function RootComponent() {
   return (
@@ -55,15 +60,15 @@ function RootComponent() {
         {import.meta.env.DEV && (
           <TanStackDevtools
             config={{
-              position: "bottom-right",
+              position: 'bottom-right',
             }}
             plugins={[
               {
-                name: "Tanstack Router",
+                name: 'Tanstack Router',
                 render: <TanStackRouterDevtoolsPanel />,
               },
               {
-                name: "Tanstack Query",
+                name: 'Tanstack Query',
                 render: <TanStackDevtools />,
               },
             ]}
@@ -71,7 +76,7 @@ function RootComponent() {
         )}
       </ThemeProvider>
     </QueryClientProvider>
-  );
+  )
 }
 
 function RootDocument({ children }: { children: React.ReactNode }) {
@@ -85,5 +90,5 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <Scripts />
       </body>
     </html>
-  );
+  )
 }
