@@ -160,7 +160,7 @@ function OverviewTab() {
   const { data: stats } = useDailyStats()
   const { data: weeklyStats } = useWeeklyStats()
   // Fetch more orders for the "Transaction History" table
-  const { data: orders } = useOrders({ limit: 50 })
+  const { data: orders } = useOrders({ limit: 500 })
   const [searchTerm, setSearchTerm] = useState('')
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null)
 
